@@ -59,7 +59,6 @@
 			);
 			getLocations();
 			updatePosition();
-
 			setTimeout(mainProgram, 5000);
 		}
 
@@ -69,8 +68,8 @@
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
 				console.log(position);
-				updateMarker(position.latitude+Math.random()*300, position.longitude + Math.random()*300);
-				GpsGate.Server.Hackathon.UpdatePosition(position.latitude, position.longitude, 1.0, 0);
+				updateMarker(position.coords.latitude+Math.random()*300, position.coords.longitude + Math.random()*300);
+				GpsGate.Server.Hackathon.UpdatePosition(position.coords.latitude, position.coords.longitude, 1.0, 0);
 			}, function(error){ console.log(error)}, geo_options);
 		}
 
@@ -87,7 +86,10 @@
 			  timeout           : 27000
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
-				callback(calcMarker(position.latitude, position.longitude, heading, distance));
+				console.log(JSON.stringify(position));
+				var markerLocation = calcMarker(position.coords.latitude, position.coords.longitude, heading, distance);
+				console.log("markerLocation: " + JSON.stringify(markerLocation));
+				callback(markerLocation);
 			}, undefined, geo_options)
 		}
 
@@ -155,8 +157,8 @@
             else{
             	rlon = ( (rlon1 - Math.asin( Math.sin(rbearing)* Math.sin(rdistance) / Math.cos(rlat) ) + Math.PI ) % (2*Math.PI) ) - Math.PI;
             }
-            lat = rad2deg(rlat);
-            lon = rad2deg(rlon);
+            var lat = rad2deg(rlat);
+            var lon = rad2deg(rlon);
             return {latitude:lat, longitude:lon};
         }
 
