@@ -128,17 +128,8 @@
 
         function updateMarker(latitude, longitude){
         	var newPosition = new google.maps.LatLng(latitude, longitude);
-
-        	marker = new google.maps.Marker({
-        		position: newPosition,
-        		map: map,
-        		draggable: true
-        	});
-
-        	var mapOptions = {
-        		center: newPosition,
-        		zoom: 18
-        	};
+        	marker.setPosition(newPosition);
+        	map.panTo(newPosition);
         }
 
         function addMarker(latitude, longitude){
