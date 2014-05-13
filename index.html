@@ -1,10 +1,193 @@
 <!DOCTYPE html>
 <html>
+<head>
+	<title>Hackathon</title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+	<!-- Include core bootstrap -->
+	<script type="text/javascript" src="http://studs.gpsgate.com/Services/Core.ashx?xss2=true&deps=true"></script>
+	
+	<!-- Google maps API -->
+	<!-- https://developers.google.com/maps/documentation/javascript/tutorial -->
+	<!-- <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=true"></script> -->
+	
+	<script>
+		// Include session handling (login/logout) + jQuery
+		goog.require('GpsGate.Session');
+
+		// knockout (http://http://knockoutjs.com/)
+		// goog.require('ko');
+	</script>
+
+	<script>
+		// Include hackathon web service
+		GpsGate.require('GpsGate.Server.Hackathon');
+	</script>
+
+	<script>
+		var foundLocations = [];
+		function doLogin() {
+			var appId = 5;
+			var username = 'team9';
+			var password = '1234';
+			
+			return GpsGate.Session.login(username, password, { appId: appId }).addCallbacks(
+					function(result) {
+						console.log('Login OK');
+						setTimeout(loadCoords, 0); // use timeout "trick" to get out of the deferred callback chain scope
+					},
+					function(error) {
+						console.error("that's a bummer!")
+					}
+				);
+		}
+
+		function loadCoords(){
+			initializeMap();
+			mainProgram ();
+		}
+
+		function mainProgram() {
+			// do something
+			console.log('app.main');
+
+			// Get some users
+			GpsGate.Server.Hackathon.GetUpdatedUsers().addCallbacks(
+				function(response) {
+				},
+				function(error) { }
+			);
+			getLocations();
+			updatePosition();
+
+			setTimeout(mainProgram, 5000);
+		}
+
+		function updatePosition (){
+			var geo_options = {
+			  enableHighAccuracy: true
+			};
+			navigator.geolocation.getCurrentPosition(function(position) {
+				console.log(position);
+				updateMarker(position.latitude+Math.random()*300, position.longitude + Math.random()*300);
+				GpsGate.Server.Hackathon.UpdatePosition(position.latitude, position.longitude, 1.0, 0);
+			}, function(error){ console.log(error)}, geo_options);
+		}
+
+		function placeMarker(location){
+			var longitude = location.longitude;
+			var latitude = location.latitude;
+			addMarker(latitude, longitude);
+		}
+
+		function convertDirectionToCoordinate(heading, distance, callback){
+			var geo_options = {
+			  enableHighAccuracy: true, 
+			  maximumAge        : 30000,
+			  timeout           : 27000
+			};
+			navigator.geolocation.getCurrentPosition(function(position) {
+				callback(calcMarker(position.latitude, position.longitude, heading, distance));
+			}, undefined, geo_options)
+		}
+
+		function getLocations (){
+			GpsGate.Server.Hackathon.GetNearbyLocations().addCallbacks(
+				function(response){
+					for (var i = response.length - 1; i >= 0; i--) {
+						var location = response[i];
+						if(foundLocations.indexOf(location.name) == -1){
+							foundLocations.push(location.name);
+							convertDirectionToCoordinate(location.heading, location.distance, function(position){
+								placeMarker(position);
+							});
+						}
+						
+					};
+				});
+		}
+		var map;
+        var marker;
+        
+        function initializeMap() {
+        	var gpsgate = new google.maps.LatLng(59.341349799999996, 18.059655799999998);
+
+        	var mapOptions = {
+        		center: gpsgate,
+        		zoom: 18
+        	};
+
+        	map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+        	marker = new google.maps.Marker({
+        		position: gpsgate,
+        		map: map,
+        		draggable: true
+        	});
+        }
+
+        function updateMarker(latitude, longitude){
+        	var newPosition = new google.maps.LatLng(latitude, longitude);
+
+        	marker = new google.maps.Marker({
+        		position: newPosition,
+        		map: map,
+        		draggable: true
+        	});
+
+        	var mapOptions = {
+        		center: newPosition,
+        		zoom: 18
+        	};
+        }
+
+        function addMarker(latitude, longitude){
+                var newPosition = new google.maps.LatLng(latitude, longitude);
+
+                var newMarker = new google.maps.Marker({
+                    position: newPosition,
+                    map: map
+                });
+            }
+
+        function calcMarker(lat1, lon1, bearing, distance) {
+        	var rEarth = 6371.01;
+            var rlat1 = deg2rad(lat1);
+            var rlon1 = deg2rad(lon1);
+            var rbearing = deg2rad(bearing);
+            var rdistance = distance / rEarth; //normalize linear distance to radian angle;
+
+            var rlat = Math.asin( Math.sin(rlat1) * Math.cos(rdistance) + Math.cos(rlat1) * Math.sin(rdistance) * Math.cos(rbearing) );
+
+            if (Math.cos(rlat) == 0 || Math.abs(Math.cos(rlat)) < 0.00001){ //# Endpoint a pole
+            	rlon=rlon1;}
+            else{
+            	rlon = ( (rlon1 - Math.asin( Math.sin(rbearing)* Math.sin(rdistance) / Math.cos(rlat) ) + Math.PI ) % (2*Math.PI) ) - Math.PI;
+            }
+            lat = rad2deg(rlat);
+            lon = rad2deg(rlon);
+            return {latitude:lat, longitude:lon};
+        }
+
+        function deg2rad(degrees){
+        	return degrees*Math.PI/180;
+        }
+        function rad2deg(radians){
+        	return radians*180/Math.PI;
+        }
+
+		jQuery(document).ready(doLogin);
+
+	</script>
+
+
+</head>
 <body>
-
-<h1>My First Heading</h1>
-
-<p>My first paragraph.</p>
-
+	<div>
+		Some UI stuff here...
+		<ul id="users">
+		</ul>
+	</div>
+	<div id="map_canvas" style="width:100%;height:300px;"></div>
 </body>
 </html>
