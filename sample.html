@@ -2,6 +2,8 @@
 <html>
 <head>
 	<title>Hackathon</title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
 	<!-- Include core bootstrap -->
 	<script type="text/javascript" src="http://studs.gpsgate.com/Services/Core.ashx?xss2=true&deps=true"></script>
 	
@@ -41,10 +43,13 @@
 		}
 
 		function loadCoords(){
-			var locations = $.parseJSON(document.cookie);
-			for (var i = locations.length - 1; i >= 0; i--) {
-				placeMarker(locations[i]);
-			};
+			initializeMap();
+			var locations = jQuery.parseJSON(document.cookie);
+			if(locations){
+				for (var i = locations.length - 1; i >= 0; i--) {
+					placeMarker(locations[i]);
+				};
+			}
 			mainProgram ();
 		}
 
@@ -55,28 +60,24 @@
 			// Get some users
 			GpsGate.Server.Hackathon.GetUpdatedUsers().addCallbacks(
 				function(response) {
-					var ul = jQuery('#users');
-					for (var i = 0; i < response.users.length; i++) {
-						ul.append('<li>' + response.users[i].name + '</li>');
-					}
 				},
 				function(error) { }
 			);
 			getLocations();
 			updatePosition();
 
-			setTimeout(mainProgram, 3);
+			setTimeout(mainProgram, 3000);
 		}
 
 		function updatePosition (){
 			var geo_options = {
-			  enableHighAccuracy: true, 
-			  maximumAge        : 30000, 
-			  timeout           : 27000
+			  enableHighAccuracy: true
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
+				console.log(position);
+				updateMarker(latitude+Math.random()*3, position.longitude + Math.random()*3);
 				GpsGate.Server.Hackathon.UpdatePosition(position.latitude, position.longitude, 1.0, 0);
-			}, undefined, geo_options);
+			}, function(error){ console.log(error)}, geo_options);
 		}
 
 		function placeMarker(location){
@@ -84,27 +85,75 @@
 			var latitude = location.latitude;
 		}
 
-		function convertDirectionToCoordinate(){
-			return {longitude:0.0, latitude:0.0};
+		function convertDirectionToCoordinate(heading, distance, callback){
+			var geo_options = {
+			  enableHighAccuracy: true, 
+			  maximumAge        : 30000,
+			  timeout           : 27000
+			};
+			navigator.geolocation.getCurrentPosition(function(position) {
+
+				//calc code here
+
+				var result = {longitude:0.0, latitude:0.0}
+				callback(result);
+			}, undefined, geo_options)
 		}
 
 		function getLocations (){
 			GpsGate.Server.Hackathon.GetNearbyLocations().addCallbacks(
 				function(response){
-					alert(JSON.stringify(response));
 					for (var i = response.length - 1; i >= 0; i--) {
 						var location = response[i];
 						if(foundLocations.indexOf(location.name) == -1){
 							foundLocations.push(location.name);
-							placeMarker(convertDirectionToCoordinate(location.heading, location.distance));
+							convertDirectionToCoordinate(location.heading, location.distance, function(position){
+								placeMarker(position);
+							});
 						}
-						var stringified = "dist: " + location.distance + ", heading: " + location.heading + ", Name: " + location.name;
-						jQuery('#users').append('<li>' + stringified + '</li>');
+						
 					};
 				});
 		}
 
+
+		var map;
+        var marker;
+        
+        function initializeMap() {
+        	var gpsgate = new google.maps.LatLng(59.341349799999996, 18.059655799999998);
+
+        	var mapOptions = {
+        		center: gpsgate,
+        		zoom: 18
+        	};
+
+        	map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+        	marker = new google.maps.Marker({
+        		position: gpsgate,
+        		map: map,
+        		draggable: true
+        	});
+        }
+
+        function updateMarker(latitude, longitude){
+        	var newPosition = new google.maps.LatLng(latitude, longitude);
+
+        	marker = new google.maps.Marker({
+        		position: newPosition,
+        		map: map,
+        		draggable: true
+        	});
+
+        	var mapOptions = {
+        		center: newPosition,
+        		zoom: 18
+        	};
+        }
+
 		jQuery(document).ready(doLogin);
+
 	</script>
 
 
@@ -115,5 +164,6 @@
 		<ul id="users">
 		</ul>
 	</div>
+	<div id="map_canvas" style="width:100%;height:300px;"></div>
 </body>
 </html>
