@@ -72,7 +72,6 @@
 		}
 
 		function placeMarker(location, name){
-			console.log(JSON.stringify(location));
 			var longitude = location.longitude;
 			var latitude = location.latitude;
 			addMarker(latitude, longitude, name);
@@ -97,7 +96,6 @@
 						var location = response[i];
 						if(foundLocations.indexOf(location.name) == -1){
 							foundLocations.push(location.name);
-							console.log(location.heading);
 							convertDirectionToCoordinate(location.heading, location.distance, location.name, function(position, name){
 								placeMarker(position, name);
 							});
@@ -134,7 +132,6 @@
 
         function addMarker(latitude, longitude, name){
                 var newPosition = new google.maps.LatLng(latitude, longitude);
-                console.log(name);
                 var newMarker = new google.maps.Marker({
                     position: newPosition,
                     map: map,
@@ -142,31 +139,60 @@
                 });
             }
 
-        function calcMarker(lat1, lon1, bearing, distance) {
-        	var rEarth = 6371.01;
-            var rlat1 = deg2rad(lat1);
-            var rlon1 = deg2rad(lon1);
-            var rbearing = deg2rad(bearing);
-            var rdistance = distance / rEarth; //normalize linear distance to radian angle;
+        // function calcMarker(startLatitude, startLongitude, initialBearingRadians, distanceKilometres)
+        // {
+        //     var radiusEarthKilometres = 6371.01;
+        //     var distRatio = distanceKilometres / radiusEarthKilometres;
+        //     var distRatioSine = Math.sin(distRatio);
+        //     var distRatioCosine = Math.cos(distRatio);
 
-            var rlat = Math.asin( Math.sin(rlat1) * Math.cos(rdistance) + Math.cos(rlat1) * Math.sin(rdistance) * Math.cos(rbearing) );
+        //     var startLatRad = DegreesToRadians(startLatitude);
+        //     var startLonRad = DegreesToRadians(startLongitude);
 
-            if (Math.cos(rlat) == 0 || Math.abs(Math.cos(rlat)) < 0.00001){ //# Endpoint a pole
-            	rlon=rlon1;}
-            else{
-            	rlon = ( (rlon1 - Math.asin( Math.sin(rbearing)* Math.sin(rdistance) / Math.cos(rlat) ) + Math.PI ) % (2*Math.PI) ) - Math.PI;
-            }
-            var lat = rad2deg(rlat);
-            var lon = rad2deg(rlon);
-            return {latitude:lat, longitude:lon};
-        }
+        //     var startLatCos = Math.cos(startLatRad);
+        //     var startLatSin = Math.sin(startLatRad);
 
-        function deg2rad(degrees){
-        	return degrees*Math.PI/180;
-        }
-        function rad2deg(radians){
-        	return radians*180/Math.PI;
-        }
+        //     var endLatRads = Math.asin((startLatSin * distRatioCosine) + (startLatCos * distRatioSine * Math.cos(initialBearingRadians)));
+
+        //     var endLonRads = startLonRad
+        //         + Math.atan2(
+        //             Math.sin(initialBearingRadians) * distRatioSine * startLatCos,
+        //             distRatioCosine - startLatSin * Math.sin(endLatRads));
+
+        //     return {latitude:RadiansToDegrees(endLatRads), longitude:RadiansToDegrees(endLonRads)};
+        // }
+
+        // function DegreesToRadians(degrees)
+        // {
+        //     var degToRadFactor = Math.PI / 180;
+        //     return degrees * degToRadFactor;
+        // }
+
+        // function RadiansToDegrees(radians)
+        // {
+        //     var radToDegFactor = 180 / Math.PI;
+        //     return radians * radToDegFactor;
+        // }
+
+        function calcMarker(vLatitude, vLongitude, vAngle, vDistance) { var vNewLatLng = []; vDistance = vDistance / 6371; vAngle = ToRad(vAngle);
+
+        var vLat1 = ToRad(vLatitude); var vLng1 = ToRad(vLongitude);
+
+        var vNewLat = Math.asin(Math.sin(vLat1) * Math.cos(vDistance) + Math.cos(vLat1) * Math.sin(vDistance) * Math.cos(vAngle));
+
+        var vNewLng = vLng1 + Math.atan2(Math.sin(vAngle) * Math.sin(vDistance) * Math.cos(vLat1), Math.cos(vDistance) - Math.sin(vLat1) * Math.sin(vNewLat));
+
+        if (isNaN(vNewLat) || isNaN(vNewLng)) { return null; }
+
+        vNewLatLng[0] = ToDeg(vNewLat); vNewLatLng[1] = ToDeg(vNewLng);
+
+        return {latitude:ToDeg(vNewLat), longitude: ToDeg(vNewLng)}; 
+    }
+
+        function ToRad(vInput) { return vInput * Math.PI / 180; }
+
+        function ToDeg(vInput) { return vInput * 180 / Math.PI; }
+
 
 		jQuery(document).ready(doLogin);
 
