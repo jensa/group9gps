@@ -23,21 +23,29 @@
 	</script>
 
 	<script>
-
+		var foundLocations = [];
 		function doLogin() {
 			var appId = 5;
-			var username = '';
-			var password = '';
+			var username = 'team9';
+			var password = '1234';
 			
 			return GpsGate.Session.login(username, password, { appId: appId }).addCallbacks(
 					function(result) {
 						console.log('Login OK');
-						setTimeout(mainProgram, 0); // use timeout "trick" to get out of the deferred callback chain scope
+						setTimeout(loadCoords, 0); // use timeout "trick" to get out of the deferred callback chain scope
 					},
 					function(error) {
 						console.error("that's a bummer!")
 					}
 				);
+		}
+
+		function loadCoords(){
+			var locations = $.parseJSON(document.cookie);
+			for (var i = locations.length - 1; i >= 0; i--) {
+				placeMarker(locations[i]);
+			};
+			mainProgram ();
 		}
 
 		function mainProgram() {
@@ -54,10 +62,52 @@
 				},
 				function(error) { }
 			);
+			getLocations();
+			updatePosition();
+
+			setTimeout(mainProgram, 3);
+		}
+
+		function updatePosition (){
+			var geo_options = {
+			  enableHighAccuracy: true, 
+			  maximumAge        : 30000, 
+			  timeout           : 27000
+			};
+			navigator.geolocation.getCurrentPosition(function(position) {
+				GpsGate.Server.Hackathon.UpdatePosition(position.latitude, position.longitude, 1.0, 0);
+			}, undefined, geo_options);
+		}
+
+		function placeMarker(location){
+			var longitude = location.longitude;
+			var latitude = location.latitude;
+		}
+
+		function convertDirectionToCoordinate(){
+			return {longitude:0.0, latitude:0.0};
+		}
+
+		function getLocations (){
+			GpsGate.Server.Hackathon.GetNearbyLocations().addCallbacks(
+				function(response){
+					alert(JSON.stringify(response));
+					for (var i = response.length - 1; i >= 0; i--) {
+						var location = response[i];
+						if(foundLocations.indexOf(location.name) == -1){
+							foundLocations.push(location.name);
+							placeMarker(convertDirectionToCoordinate(location.heading, location.distance));
+						}
+						var stringified = "dist: " + location.distance + ", heading: " + location.heading + ", Name: " + location.name;
+						jQuery('#users').append('<li>' + stringified + '</li>');
+					};
+				});
 		}
 
 		jQuery(document).ready(doLogin);
 	</script>
+
+
 </head>
 <body>
 	<div>
