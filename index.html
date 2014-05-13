@@ -67,25 +67,26 @@
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
 				updateMarker(position.coords.latitude, position.coords.longitude);
-				GpsGate.Server.Hackathon.UpdatePosition(position.coords.latitude, position.coords.longitude, 1.0, 0);
+				GpsGate.Server.Hackathon.UpdatePosition(position.coords.latitude, position.coords.longitude, 1.0, 0.0);
 			}, function(error){ console.log(error)}, geo_options);
 		}
 
-		function placeMarker(location){
+		function placeMarker(location, name){
+			console.log(JSON.stringify(location));
 			var longitude = location.longitude;
 			var latitude = location.latitude;
-			addMarker(latitude, longitude);
+			addMarker(latitude, longitude, name);
 		}
 
-		function convertDirectionToCoordinate(heading, distance, callback){
+		function convertDirectionToCoordinate(heading, distance, name, callback){
 			var geo_options = {
 			  enableHighAccuracy: true, 
 			  maximumAge        : 30000,
 			  timeout           : 27000
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
-				var markerLocation = calcMarker(position.coords.latitude, position.coords.longitude, heading, distance);
-				callback(markerLocation);
+				var markerLocation = calcMarker(position.coords.latitude, position.coords.longitude, heading, distance/1000);
+				callback(markerLocation, name);
 			}, undefined, geo_options)
 		}
 
@@ -96,8 +97,9 @@
 						var location = response[i];
 						if(foundLocations.indexOf(location.name) == -1){
 							foundLocations.push(location.name);
-							convertDirectionToCoordinate(location.heading, location.distance, function(position){
-								placeMarker(position);
+							console.log(location.heading);
+							convertDirectionToCoordinate(location.heading, location.distance, location.name, function(position, name){
+								placeMarker(position, name);
 							});
 						}
 						
@@ -130,12 +132,13 @@
         	map.panTo(newPosition);
         }
 
-        function addMarker(latitude, longitude){
+        function addMarker(latitude, longitude, name){
                 var newPosition = new google.maps.LatLng(latitude, longitude);
-
+                console.log(name);
                 var newMarker = new google.maps.Marker({
                     position: newPosition,
-                    map: map
+                    map: map,
+                    title:name
                 });
             }
 
@@ -172,11 +175,6 @@
 
 </head>
 <body>
-	<div>
-		Some UI stuff here...
-		<ul id="users">
-		</ul>
-	</div>
-	<div id="map_canvas" style="width:100%;height:300px;"></div>
+	<div id="map_canvas" style="width:100%;height:800px;"></div>
 </body>
 </html>
