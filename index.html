@@ -49,7 +49,6 @@
 
 		function mainProgram() {
 			// do something
-			console.log('app.main');
 
 			// Get some users
 			GpsGate.Server.Hackathon.GetUpdatedUsers().addCallbacks(
@@ -67,8 +66,7 @@
 			  enableHighAccuracy: true
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
-				console.log(position);
-				updateMarker(position.coords.latitude+Math.random()*300, position.coords.longitude + Math.random()*300);
+				updateMarker(position.coords.latitude, position.coords.longitude);
 				GpsGate.Server.Hackathon.UpdatePosition(position.coords.latitude, position.coords.longitude, 1.0, 0);
 			}, function(error){ console.log(error)}, geo_options);
 		}
@@ -86,9 +84,7 @@
 			  timeout           : 27000
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
-				console.log(JSON.stringify(position));
 				var markerLocation = calcMarker(position.coords.latitude, position.coords.longitude, heading, distance);
-				console.log("markerLocation: " + JSON.stringify(markerLocation));
 				callback(markerLocation);
 			}, undefined, geo_options)
 		}
