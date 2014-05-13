@@ -14,7 +14,7 @@ function myFunction(lat1, lon1, bearing, distance) {
     }
     lat = rad2deg(rlat);
     lon = rad2deg(rlon);
-    document.getElementById("demo").innerHTML = lat+" "+lon;
+    return [lat, lon];
 }
 
 function deg2rad(degrees){
