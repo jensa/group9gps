@@ -66,7 +66,7 @@
 			getLocations();
 			updatePosition();
 
-			setTimeout(mainProgram, 3000);
+			setTimeout(mainProgram, 5000);
 		}
 
 		function updatePosition (){
@@ -75,7 +75,7 @@
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
 				console.log(position);
-				updateMarker(latitude+Math.random()*3, position.longitude + Math.random()*3);
+				updateMarker(latitude+Math.random()*300, position.longitude + Math.random()*300);
 				GpsGate.Server.Hackathon.UpdatePosition(position.latitude, position.longitude, 1.0, 0);
 			}, function(error){ console.log(error)}, geo_options);
 		}
@@ -83,6 +83,7 @@
 		function placeMarker(location){
 			var longitude = location.longitude;
 			var latitude = location.latitude;
+			addMarker(latitude, longitude);
 		}
 
 		function convertDirectionToCoordinate(heading, distance, callback){
@@ -92,11 +93,7 @@
 			  timeout           : 27000
 			};
 			navigator.geolocation.getCurrentPosition(function(position) {
-
-				//calc code here
-
-				var result = {longitude:0.0, latitude:0.0}
-				callback(result);
+				callback(calcMarker(position.latitude, position.longitude, heading, distance));
 			}, undefined, geo_options)
 		}
 
@@ -115,8 +112,6 @@
 					};
 				});
 		}
-
-
 		var map;
         var marker;
         
@@ -150,6 +145,41 @@
         		center: newPosition,
         		zoom: 18
         	};
+        }
+
+        function addMarker(latitude, longitude){
+                var newPosition = new google.maps.LatLng(latitude, longitude);
+
+                var newMarker = new google.maps.Marker({
+                    position: newPosition,
+                    map: map
+                });
+            }
+
+        function calcMarker(lat1, lon1, bearing, distance) {
+        	var rEarth = 6371.01;
+            var rlat1 = deg2rad(lat1);
+            var rlon1 = deg2rad(lon1);
+            var rbearing = deg2rad(bearing);
+            var rdistance = distance / rEarth; //normalize linear distance to radian angle;
+
+            var rlat = Math.asin( Math.sin(rlat1) * Math.cos(rdistance) + Math.cos(rlat1) * Math.sin(rdistance) * Math.cos(rbearing) );
+
+            if (Math.cos(rlat) == 0 || Math.abs(Math.cos(rlat)) < 0.00001){ //# Endpoint a pole
+            	rlon=rlon1;}
+            else{
+            	rlon = ( (rlon1 - Math.asin( Math.sin(rbearing)* Math.sin(rdistance) / Math.cos(rlat) ) + Math.PI ) % (2*Math.PI) ) - Math.PI;
+            }
+            lat = rad2deg(rlat);
+            lon = rad2deg(rlon);
+            return {latitude:lat, longitude:lon};
+        }
+
+        function deg2rad(degrees){
+        	return degrees*Math.PI/180;
+        }
+        function rad2deg(radians){
+        	return radians*180/Math.PI;
         }
 
 		jQuery(document).ready(doLogin);
